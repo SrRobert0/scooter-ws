@@ -12,6 +12,7 @@
     // For nodejs:
     "lib": ["ES2023", "DOM"],
     "types": ["node"],
+    "noImplicitAny": false,
     // and npm install -D @types/node
 
     // Other Outputs
@@ -22,6 +23,7 @@
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
+    "allowSyntheticDefaultImports": true,
 
     // Style Options
     // "noImplicitReturns": true,
