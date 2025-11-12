@@ -13,6 +13,7 @@ type Scooter = {
   batteryLevel: number;
   lat: number;
   lon: number;
+  displacement: number;
   onUse: boolean;
   lastUpdate?: Date;
 };
@@ -74,7 +75,7 @@ express.get("/scooters/:id", (req, res) => {
 });
 
 express.post("/scooters/register", (req, res) => {
-  const { name, batteryLevel, lat, lon } = req.body;
+  const { name, batteryLevel, lat, lon, displacement } = req.body;
 
   if (!name) {
     return res.status(400).json({ error: "Nome da scooter é obrigatório" });
@@ -92,6 +93,7 @@ express.post("/scooters/register", (req, res) => {
     batteryLevel,
     lat,
     lon,
+    displacement,
     onUse: false,
     lastUpdate: new Date(),
   };
@@ -107,7 +109,7 @@ express.post("/scooters/register", (req, res) => {
 
 express.put("/scooters/:id", (req, res) => {
   const { id } = req.params;
-  const { name, batteryLevel, onUse, lat, lon } = req.body;
+  const { name, batteryLevel, onUse, lat, lon, displacement } = req.body;
 
   const scooterIndex = scooters.findIndex((s) => s.id === id);
 
@@ -120,6 +122,8 @@ express.put("/scooters/:id", (req, res) => {
     batteryLevel || scooters[scooterIndex].batteryLevel;
   scooters[scooterIndex].lat = lat || scooters[scooterIndex].lat;
   scooters[scooterIndex].lon = lon || scooters[scooterIndex].lon;
+  scooters[scooterIndex].displacement =
+    displacement || scooters[scooterIndex].displacement;
   scooters[scooterIndex].onUse = onUse || scooters[scooterIndex].onUse;
   scooters[scooterIndex].lastUpdate = new Date();
 
