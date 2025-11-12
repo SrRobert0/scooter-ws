@@ -11,6 +11,8 @@ type Scooter = {
   id: string;
   name: string;
   batteryLevel: number;
+  lat: number;
+  lon: number;
   lastUpdate?: Date;
 };
 
@@ -71,7 +73,7 @@ express.get("/scooters/:id", (req, res) => {
 });
 
 express.post("/scooters/register", (req, res) => {
-  const { name, batteryLevel } = req.body;
+  const { name, batteryLevel, lat, lon } = req.body;
 
   if (!name) {
     return res.status(400).json({ error: "Nome da scooter é obrigatório" });
@@ -87,6 +89,8 @@ express.post("/scooters/register", (req, res) => {
     id: randomUUID(),
     name,
     batteryLevel,
+    lat,
+    lon,
     lastUpdate: new Date(),
   };
 
@@ -99,7 +103,7 @@ express.post("/scooters/register", (req, res) => {
 
 express.put("/scooters/:id", (req, res) => {
   const { id } = req.params;
-  const { name, batteryLevel } = req.body;
+  const { name, batteryLevel, isConfigured, lat, lon } = req.body;
 
   const scooterIndex = scooters.findIndex((s) => s.id === id);
 
@@ -110,6 +114,8 @@ express.put("/scooters/:id", (req, res) => {
   scooters[scooterIndex].name = name || scooters[scooterIndex].name;
   scooters[scooterIndex].batteryLevel =
     batteryLevel || scooters[scooterIndex].batteryLevel;
+  scooters[scooterIndex].lat = lat || scooters[scooterIndex].lat;
+  scooters[scooterIndex].lon = lon || scooters[scooterIndex].lon;
   scooters[scooterIndex].lastUpdate = new Date();
 
   res.json(scooters[scooterIndex]);
