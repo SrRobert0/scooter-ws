@@ -2,7 +2,7 @@ import { v4 as randomUUID } from "uuid";
 import express from "./lib/express";
 import { createServer } from "node:http";
 import { Server } from "socket.io";
-import { WebSocketServer } from "ws";
+import { type WebSocket, WebSocketServer } from "ws";
 
 const app = createServer(express);
 const io = new Server(app, { cors: { origin: "*" } });
@@ -18,6 +18,8 @@ const scooters: Scooter[] = [];
 
 const wss = new WebSocketServer({ noServer: true });
 
+const clients = new Set<WebSocket>();
+
 app.on("upgrade", (request, socket, head) => {
   const { url } = request;
   if (url && url.startsWith("/ws")) {
@@ -31,6 +33,8 @@ app.on("upgrade", (request, socket, head) => {
 
 wss.on("connection", (ws) => {
   console.log("WS puro conectado (ESP32 possível)");
+  clients.add(ws);
+
   ws.send(JSON.stringify({ server: "wss ok" }));
 
   // Ao receber algo de um cliente WebSocket puro, repassa ao socket.io
@@ -51,6 +55,7 @@ wss.on("connection", (ws) => {
   ws.on("close", () => {
     console.log("WS puro desconectado");
     // remover listeners se necessário
+    clients.delete(ws);
   });
 });
 
@@ -134,10 +139,15 @@ express.post("/scooters/:id/unlock/:deviceId", (req, res) => {
     code: scooter.id + " - " + deviceId,
   });
 
-  wss.emit("scooter_unlocking", {
-    ...scooter,
-    code: scooter.id + " - " + deviceId,
-  });
+  for (const client of clients) {
+    client.send(
+      JSON.stringify({
+        action: "scooter_unlocking",
+        ...scooter,
+        code: scooter.id + " - " + deviceId,
+      })
+    );
+  }
 
   res.json({
     message: `Patinete ${scooter.name}: Iniciando processo de desbloqueio.`,
@@ -156,7 +166,14 @@ express.post("/scooters/:id/ride", (req, res) => {
 
   io.emit(`scooter_ride_${scooter.id}`, scooter);
 
-  wss.emit("scooter_ride", scooter);
+  for (const client of clients) {
+    client.send(
+      JSON.stringify({
+        action: "scooter_ride",
+        ...scooter,
+      })
+    );
+  }
 
   res.json({
     message: `Patinete ${scooter.name}: Desbloqueado para uso.`,
@@ -175,7 +192,14 @@ express.post("/scooters/:id/lock", (req, res) => {
 
   io.emit(`scooter_lock_${scooter.id}`, scooter);
 
-  wss.emit("scooter_lock", scooter);
+  for (const client of clients) {
+    client.send(
+      JSON.stringify({
+        action: "scooter_lock",
+        ...scooter,
+      })
+    );
+  }
 
   res.json({
     message: `Patinete ${scooter.name}: Bloqueado com sucesso.`,
