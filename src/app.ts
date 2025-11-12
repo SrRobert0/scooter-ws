@@ -129,10 +129,16 @@ express.post("/scooters/:id/unlock/:deviceId", (req, res) => {
 
   console.log("Iniciando processo de desbloqueio para patinete:", scooter.id);
 
-  io.emit(`scooter_unlock_${scooter.id}`, {
+  io.emit(`scooter_unlocking_${scooter.id}`, {
     ...scooter,
     code: scooter.id + " - " + deviceId,
   });
+
+  wss.emit("scooter_unlocking", {
+    ...scooter,
+    code: scooter.id + " - " + deviceId,
+  });
+
   res.json({
     message: `Patinete ${scooter.name}: Iniciando processo de desbloqueio.`,
   });
@@ -149,6 +155,9 @@ express.post("/scooters/:id/ride", (req, res) => {
   console.log("Iniciando passeio para patinete:", scooter.id);
 
   io.emit(`scooter_ride_${scooter.id}`, scooter);
+
+  wss.emit("scooter_ride", scooter);
+
   res.json({
     message: `Patinete ${scooter.name}: Desbloqueado para uso.`,
   });
@@ -165,6 +174,9 @@ express.post("/scooters/:id/lock", (req, res) => {
   console.log("Iniciando bloqueio para patinete:", scooter.id);
 
   io.emit(`scooter_lock_${scooter.id}`, scooter);
+
+  wss.emit("scooter_lock", scooter);
+
   res.json({
     message: `Patinete ${scooter.name}: Bloqueado com sucesso.`,
   });
