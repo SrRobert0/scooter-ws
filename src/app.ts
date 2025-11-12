@@ -62,6 +62,17 @@ express.get("/scooters", (_, res) => {
   res.json(scooters);
 });
 
+express.get("/scooters/:id", (req, res) => {
+  const { id } = req.params;
+  const scooter = scooters.find((s) => s.id === id);
+
+  if (!scooter) {
+    return res.status(404).json({ error: "Patinete não encontrado" });
+  }
+
+  res.json(scooter);
+});
+
 express.post("/scooters/register", (req, res) => {
   const { name, batteryLevel } = req.body;
 
@@ -84,6 +95,8 @@ express.post("/scooters/register", (req, res) => {
 
   scooters.push(newScooter);
 
+  console.log("Novo patinete registrado:", newScooter.id);
+
   res.status(201).json(newScooter);
 });
 
@@ -94,7 +107,7 @@ express.put("/scooters/:id", (req, res) => {
   const scooterIndex = scooters.findIndex((s) => s.id === id);
 
   if (scooterIndex === -1 || !scooters[scooterIndex]) {
-    return res.status(404).json({ error: "Patinete não encontrada" });
+    return res.status(404).json({ error: "Patinete não encontrado" });
   }
 
   scooters[scooterIndex].name = name || scooters[scooterIndex].name;
@@ -111,11 +124,15 @@ express.post("/scooters/:id/unlock/:deviceId", (req, res) => {
   const scooter = scooters.find((s) => s.id === id);
 
   if (!scooter) {
-    return res.status(404).json({ error: "Patinete não encontrada" });
+    return res.status(404).json({ error: "Patinete não encontrado" });
   }
 
-  io.emit(`scooter_unlock_${scooter.id}`, { ...scooter, deviceId });
+  console.log("Iniciando processo de desbloqueio para patinete:", scooter.id);
 
+  io.emit(`scooter_unlock_${scooter.id}`, {
+    ...scooter,
+    code: scooter.id + " - " + deviceId,
+  });
   res.json({
     message: `Patinete ${scooter.name}: Iniciando processo de desbloqueio.`,
   });
@@ -126,11 +143,12 @@ express.post("/scooters/:id/ride", (req, res) => {
   const scooter = scooters.find((s) => s.id === id);
 
   if (!scooter) {
-    return res.status(404).json({ error: "Patinete não encontrada" });
+    return res.status(404).json({ error: "Patinete não encontrado" });
   }
 
-  io.emit(`scooter_ride_${scooter.id}`, scooter);
+  console.log("Iniciando passeio para patinete:", scooter.id);
 
+  io.emit(`scooter_ride_${scooter.id}`, scooter);
   res.json({
     message: `Patinete ${scooter.name}: Desbloqueado para uso.`,
   });
@@ -141,8 +159,10 @@ express.post("/scooters/:id/lock", (req, res) => {
   const scooter = scooters.find((s) => s.id === id);
 
   if (!scooter) {
-    return res.status(404).json({ error: "Patinete não encontrada" });
+    return res.status(404).json({ error: "Patinete não encontrado" });
   }
+
+  console.log("Iniciando bloqueio para patinete:", scooter.id);
 
   io.emit(`scooter_lock_${scooter.id}`, scooter);
   res.json({
@@ -155,10 +175,12 @@ express.delete("/scooters/:id", (req, res) => {
   const scooterIndex = scooters.findIndex((s) => s.id === id);
 
   if (scooterIndex === -1 || !scooters[scooterIndex]) {
-    return res.status(404).json({ error: "Patinete não encontrada" });
+    return res.status(404).json({ error: "Patinete não encontrado" });
   }
 
   const removedScooter = scooters[scooterIndex];
+
+  console.log("Removendo patinete:", removedScooter.id);
 
   scooters.splice(scooterIndex, 1);
   res.json({
