@@ -32,26 +32,18 @@ app.on("upgrade", (request, socket, head) => {
 });
 
 wss.on("connection", (ws) => {
-  console.log("WS puro conectado (ESP32 possível)");
   clients.add(ws);
 
   ws.send(JSON.stringify({ server: "wss ok" }));
 
-  // Ao receber algo de um cliente WebSocket puro, repassa ao socket.io
-  ws.on("message", (msg) => {
-    console.log("WS msg:", msg.toString());
-    // repassar aos clients socket.io (se quiser)
-    io.emit("mensagem_from_ws", msg.toString());
-  });
-
   // Ao receber algo de socket.io (do lado do servidor), repassa para WS
-  const forwardIo = (payload) => {
-    if (ws.readyState === ws.OPEN) {
-      ws.send(JSON.stringify(payload));
-    }
-  };
+  // const forwardIo = (payload) => {
+  //   if (ws.readyState === ws.OPEN) {
+  //     ws.send(JSON.stringify(payload));
+  //   }
+  // };
 
-  io.on("mensagem_to_ws", forwardIo); // ajuste conforme sua lógica
+  // io.on("mensagem_to_ws", forwardIo); // ajuste conforme sua lógica
   ws.on("close", () => {
     console.log("WS puro desconectado");
     // remover listeners se necessário
