@@ -160,37 +160,6 @@ express.get("/scooters/:id", (req, res) => {
   res.json(responseScooter);
 });
 
-express.get("/scooters/:id/unlock-status", (req, res) => {
-  const { id } = req.params;
-  const scooter = scooters.find((s) => s.id === id);
-
-  if (!scooter) {
-    return res.status(404).json({ error: "Patinete não encontrado" });
-  }
-
-  if (!scooter.unlockAttempt) {
-    return res.json({
-      hasUnlockAttempt: false,
-      message: "Nenhuma tentativa de desbloqueio em andamento",
-    });
-  }
-
-  const timeElapsed = Date.now() - scooter.unlockAttempt.timestamp.getTime();
-  const timeRemaining = Math.max(0, 180000 - timeElapsed); // 3 minutos = 180000ms
-
-  res.json({
-    hasUnlockAttempt: true,
-    deviceId: scooter.unlockAttempt.deviceId,
-    startTime: scooter.unlockAttempt.timestamp,
-    timeElapsedMs: timeElapsed,
-    timeRemainingMs: timeRemaining,
-    timeRemainingSeconds: Math.ceil(timeRemaining / 1000),
-    willAutoUnlockAt: new Date(
-      scooter.unlockAttempt.timestamp.getTime() + 180000
-    ),
-  });
-});
-
 express.post("/scooters/register", (req, res) => {
   const { name, batteryLevel, lat, lon, displacement } = req.body;
 
@@ -244,7 +213,8 @@ express.put("/scooters/:id", (req, res) => {
   scooters[scooterIndex].lon = lon || scooters[scooterIndex].lon;
   scooters[scooterIndex].displacement =
     displacement || scooters[scooterIndex].displacement;
-  scooters[scooterIndex].onUse = onUse || scooters[scooterIndex].onUse;
+  scooters[scooterIndex].onUse =
+    onUse === undefined || scooters[scooterIndex].onUse;
   scooters[scooterIndex].lastUpdate = new Date();
 
   io.emit(`scooter_update`);
@@ -294,6 +264,7 @@ express.post("/scooters/:id/unlock/:deviceId", (req, res) => {
     ...scooters[scooterIndex],
     code: scooters[scooterIndex].id + " - " + deviceId,
   });
+  io.emit(`scooter_update`);
 
   for (const client of clients) {
     client.send(
