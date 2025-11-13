@@ -271,15 +271,12 @@ express.post("/scooters/:id/unlock/:deviceId", (req, res) => {
   });
   io.emit(`scooter_update`);
 
-  const scooterData = scooters[scooterIndex];
-  delete scooterData.unlockAttempt;
-
   for (const client of clients) {
     client.send(
       JSON.stringify({
         action: "scooter_unlocking",
-        ...scooterData,
-        code: scooterData.id + " - " + deviceId,
+        id: scooters[scooterIndex].id,
+        code: scooters[scooterIndex].id + " - " + deviceId,
       })
     );
   }
