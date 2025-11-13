@@ -111,9 +111,12 @@ express.put("/scooters/:id", (req, res) => {
   const { id } = req.params;
   const { name, batteryLevel, onUse, lat, lon, displacement } = req.body;
 
+  console.log("Atualizando patinete:", id);
+
   const scooterIndex = scooters.findIndex((s) => s.id === id);
 
   if (scooterIndex === -1 || !scooters[scooterIndex]) {
+    console.log("Patinete não encontrado para atualização:", id);
     return res.status(404).json({ error: "Patinete não encontrado" });
   }
 
