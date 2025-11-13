@@ -16,9 +16,77 @@ type Scooter = {
   displacement: number;
   onUse: boolean;
   lastUpdate?: Date;
+  unlockAttempt?:
+    | {
+        deviceId: string;
+        timestamp: Date;
+        timerId?: NodeJS.Timeout;
+      }
+    | undefined;
 };
 
 const scooters: Scooter[] = [];
+
+// Função para desbloquear automaticamente o patinete após 3 minutos
+const autoUnlockScooter = (scooterId: string, deviceId: string) => {
+  const scooterIndex = scooters.findIndex((s) => s.id === scooterId);
+
+  if (scooterIndex === -1 || !scooters[scooterIndex]) {
+    console.log(
+      "Patinete não encontrado para desbloqueio automático:",
+      scooterId
+    );
+    return;
+  }
+
+  const scooter = scooters[scooterIndex];
+
+  // Verifica se ainda há tentativa de desbloqueio pendente
+  if (!scooter.unlockAttempt || scooter.unlockAttempt.deviceId !== deviceId) {
+    console.log(
+      "Tentativa de desbloqueio não encontrada ou já processada:",
+      scooterId
+    );
+    return;
+  }
+
+  // Verifica se o patinete ainda não foi desbloqueado manualmente
+  if (scooter.onUse) {
+    console.log("Desbloqueio automático executado para patinete:", scooterId);
+
+    // Remove a tentativa de desbloqueio e libera o patinete
+    scooter.unlockAttempt = undefined;
+    scooter.onUse = false; // Libera o patinete para uso novamente
+    scooter.lastUpdate = new Date();
+
+    // Emite evento de atualização do patinete
+    io.emit(`scooter_update`);
+    io.emit(`scooter_update_${scooterId}`);
+
+    // Emite evento via WebSocket
+    for (const client of clients) {
+      client.send(
+        JSON.stringify({
+          action: "scooter_auto_unlock_timeout",
+          ...scooter,
+          message:
+            "Patinete liberado automaticamente após 3 minutos - tentativa de desbloqueio expirou",
+        })
+      );
+    }
+
+    console.log(
+      `Patinete ${scooter.name} foi liberado automaticamente após timeout de desbloqueio`
+    );
+  } else {
+    // Remove a tentativa de desbloqueio se o patinete já foi desbloqueado
+    scooter.unlockAttempt = undefined;
+    console.log("Patinete já foi desbloqueado manualmente:", scooterId);
+  }
+
+  // Atualiza o patinete na lista
+  scooters[scooterIndex] = scooter;
+};
 
 const wss = new WebSocketServer({ noServer: true });
 
@@ -71,7 +139,56 @@ express.get("/scooters/:id", (req, res) => {
     return res.status(404).json({ error: "Patinete não encontrado" });
   }
 
-  res.json(scooter);
+  // Adiciona informações sobre tentativa de desbloqueio sem expor o timerId
+  const responseScooter = {
+    ...scooter,
+    unlockAttempt: scooter.unlockAttempt
+      ? {
+          deviceId: scooter.unlockAttempt.deviceId,
+          timestamp: scooter.unlockAttempt.timestamp,
+          timeRemaining: scooter.unlockAttempt.timerId
+            ? Math.max(
+                0,
+                180000 -
+                  (Date.now() - scooter.unlockAttempt.timestamp.getTime())
+              )
+            : 0,
+        }
+      : undefined,
+  };
+
+  res.json(responseScooter);
+});
+
+express.get("/scooters/:id/unlock-status", (req, res) => {
+  const { id } = req.params;
+  const scooter = scooters.find((s) => s.id === id);
+
+  if (!scooter) {
+    return res.status(404).json({ error: "Patinete não encontrado" });
+  }
+
+  if (!scooter.unlockAttempt) {
+    return res.json({
+      hasUnlockAttempt: false,
+      message: "Nenhuma tentativa de desbloqueio em andamento",
+    });
+  }
+
+  const timeElapsed = Date.now() - scooter.unlockAttempt.timestamp.getTime();
+  const timeRemaining = Math.max(0, 180000 - timeElapsed); // 3 minutos = 180000ms
+
+  res.json({
+    hasUnlockAttempt: true,
+    deviceId: scooter.unlockAttempt.deviceId,
+    startTime: scooter.unlockAttempt.timestamp,
+    timeElapsedMs: timeElapsed,
+    timeRemainingMs: timeRemaining,
+    timeRemainingSeconds: Math.ceil(timeRemaining / 1000),
+    willAutoUnlockAt: new Date(
+      scooter.unlockAttempt.timestamp.getTime() + 180000
+    ),
+  });
 });
 
 express.post("/scooters/register", (req, res) => {
@@ -130,6 +247,7 @@ express.put("/scooters/:id", (req, res) => {
   scooters[scooterIndex].onUse = onUse || scooters[scooterIndex].onUse;
   scooters[scooterIndex].lastUpdate = new Date();
 
+  io.emit(`scooter_update`);
   io.emit(`scooter_update_${id}`);
 
   res.json(scooters[scooterIndex]);
@@ -148,11 +266,28 @@ express.post("/scooters/:id/unlock/:deviceId", (req, res) => {
     return res.status(400).json({ error: "Patinete já está em uso." });
   }
 
+  // Cancela timer anterior se existir
+  if (scooters[scooterIndex].unlockAttempt?.timerId) {
+    clearTimeout(scooters[scooterIndex].unlockAttempt!.timerId);
+  }
+
+  // Configura a tentativa de desbloqueio com timer de 3 minutos
+  const timerId = setTimeout(() => {
+    autoUnlockScooter(id, deviceId);
+  }, 3 * 60 * 1000); // 3 minutos em milissegundos
+
+  scooters[scooterIndex].unlockAttempt = {
+    deviceId,
+    timestamp: new Date(),
+    timerId,
+  };
+
   scooters[scooterIndex].onUse = true;
 
   console.log(
     "Iniciando processo de desbloqueio para patinete:",
-    scooters[scooterIndex].id
+    scooters[scooterIndex].id,
+    "- Timer de 3 minutos ativado"
   );
 
   io.emit(`scooter_unlocking_${id}`, {
@@ -172,6 +307,7 @@ express.post("/scooters/:id/unlock/:deviceId", (req, res) => {
 
   res.json({
     message: `Patinete ${scooters[scooterIndex].name}: Iniciando processo de desbloqueio.`,
+    autoUnlockIn: "3 minutos",
   });
 });
 
@@ -181,6 +317,12 @@ express.post("/scooters/:id/ride", (req, res) => {
 
   if (scooterIndex === -1 || !scooters[scooterIndex]) {
     return res.status(404).json({ error: "Patinete não encontrado" });
+  }
+
+  // Cancela o timer de desbloqueio automático se existir
+  if (scooters[scooterIndex].unlockAttempt?.timerId) {
+    clearTimeout(scooters[scooterIndex].unlockAttempt.timerId);
+    scooters[scooterIndex].unlockAttempt = undefined;
   }
 
   console.log("Iniciando passeio para patinete:", scooters[scooterIndex].id);
@@ -211,6 +353,12 @@ express.post("/scooters/:id/lock", (req, res) => {
 
   if (!scooters[scooterIndex].onUse) {
     return res.status(400).json({ error: "Patinete já está bloqueado." });
+  }
+
+  // Cancela o timer de desbloqueio automático se existir
+  if (scooters[scooterIndex].unlockAttempt?.timerId) {
+    clearTimeout(scooters[scooterIndex].unlockAttempt.timerId);
+    scooters[scooterIndex].unlockAttempt = undefined;
   }
 
   scooters[scooterIndex].onUse = false;
@@ -252,7 +400,7 @@ express.delete("/scooters/:id", (req, res) => {
 });
 
 io.on("connection", (socket) => {
-  console.log("Novo cliente conectado:", socket.id);
+  console.log("Novo client conectado:", socket.id);
 });
 
 export default app;
