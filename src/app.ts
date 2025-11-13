@@ -27,6 +27,20 @@ type Scooter = {
 
 const scooters: Scooter[] = [];
 
+// Função para preparar dados do patinete para serialização JSON (remove timerId)
+const prepareScooterForJSON = (scooter: Scooter) => {
+  return {
+    ...scooter,
+    unlockAttempt: scooter.unlockAttempt
+      ? {
+          deviceId: scooter.unlockAttempt.deviceId,
+          timestamp: scooter.unlockAttempt.timestamp,
+          // Remove timerId para evitar referências circulares
+        }
+      : undefined,
+  };
+};
+
 // Função para desbloquear automaticamente o patinete após 3 minutos
 const autoUnlockScooter = (scooterId: string, deviceId: string) => {
   const scooterIndex = scooters.findIndex((s) => s.id === scooterId);
@@ -68,7 +82,7 @@ const autoUnlockScooter = (scooterId: string, deviceId: string) => {
       client.send(
         JSON.stringify({
           action: "scooter_auto_unlock_timeout",
-          ...scooter,
+          ...prepareScooterForJSON(scooter),
           message:
             "Patinete liberado automaticamente após 3 minutos - tentativa de desbloqueio expirou",
         })
@@ -106,16 +120,6 @@ app.on("upgrade", (request, socket, head) => {
 wss.on("connection", (ws) => {
   clients.add(ws);
 
-  ws.send(JSON.stringify({ server: "wss ok" }));
-
-  // Ao receber algo de socket.io (do lado do servidor), repassa para WS
-  // const forwardIo = (payload) => {
-  //   if (ws.readyState === ws.OPEN) {
-  //     ws.send(JSON.stringify(payload));
-  //   }
-  // };
-
-  // io.on("mensagem_to_ws", forwardIo); // ajuste conforme sua lógica
   ws.on("close", () => {
     console.log("WS puro desconectado");
     // remover listeners se necessário
@@ -128,7 +132,8 @@ express.get("/status", (_, res) => {
 });
 
 express.get("/scooters", (_, res) => {
-  res.json(scooters);
+  const cleanScooters = scooters.map(prepareScooterForJSON);
+  res.json(cleanScooters);
 });
 
 express.get("/scooters/:id", (req, res) => {
@@ -220,7 +225,7 @@ express.put("/scooters/:id", (req, res) => {
   io.emit(`scooter_update`);
   io.emit(`scooter_update_${id}`);
 
-  res.json(scooters[scooterIndex]);
+  res.json(prepareScooterForJSON(scooters[scooterIndex]));
 });
 
 express.post("/scooters/:id/unlock/:deviceId", (req, res) => {
@@ -261,7 +266,7 @@ express.post("/scooters/:id/unlock/:deviceId", (req, res) => {
   );
 
   io.emit(`scooter_unlocking_${id}`, {
-    ...scooters[scooterIndex],
+    ...prepareScooterForJSON(scooters[scooterIndex]),
     code: scooters[scooterIndex].id + " - " + deviceId,
   });
   io.emit(`scooter_update`);
@@ -270,7 +275,7 @@ express.post("/scooters/:id/unlock/:deviceId", (req, res) => {
     client.send(
       JSON.stringify({
         action: "scooter_unlocking",
-        ...scooters[scooterIndex],
+        ...prepareScooterForJSON(scooters[scooterIndex]),
         code: scooters[scooterIndex].id + " - " + deviceId,
       })
     );
@@ -298,13 +303,13 @@ express.post("/scooters/:id/ride", (req, res) => {
 
   console.log("Iniciando passeio para patinete:", scooters[scooterIndex].id);
 
-  io.emit(`scooter_ride_${id}`, scooters[scooterIndex]);
+  io.emit(`scooter_ride_${id}`, prepareScooterForJSON(scooters[scooterIndex]));
 
   for (const client of clients) {
     client.send(
       JSON.stringify({
         action: "scooter_ride",
-        ...scooters[scooterIndex],
+        ...prepareScooterForJSON(scooters[scooterIndex]),
       })
     );
   }
@@ -340,7 +345,7 @@ express.post("/scooters/:id/lock", (req, res) => {
     client.send(
       JSON.stringify({
         action: "scooter_lock",
-        ...scooters[scooterIndex],
+        ...prepareScooterForJSON(scooters[scooterIndex]),
       })
     );
   }
