@@ -81,7 +81,7 @@ const autoUnlockScooter = (scooterId: string, deviceId: string) => {
     for (const client of clients) {
       client.send(
         JSON.stringify({
-          action: "scooter_auto_unlock_timeout",
+          action: "scooter_lock",
           ...prepareScooterForJSON(scooter),
           message:
             "Patinete liberado automaticamente após 3 minutos - tentativa de desbloqueio expirou",
