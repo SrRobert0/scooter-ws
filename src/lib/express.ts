@@ -1,9 +1,9 @@
 import express from "express";
 import cors from "cors";
 
-const app = express();
+const expressApp = express();
 
-app.use(cors());
-app.use(express.json());
+expressApp.use(cors());
+expressApp.use(express.json());
 
-export default app;
+export default expressApp;
