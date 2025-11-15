@@ -62,14 +62,7 @@ export const broadcastWebSocket = (message: WebSocketMessage): void => {
  * Envia evento de patinete para todos os clientes
  */
 export const emitScooterEvent = (
-  eventType:
-    | "creation"
-    | "update"
-    | "delete"
-    | "unlocking"
-    | "ride"
-    | "lock"
-    | "auto_unlock_timeout",
+  eventType: "creation" | "update" | "delete" | "unlocking" | "ride" | "lock",
   scooterId?: string,
   data?: any
 ): void => {
@@ -84,12 +77,8 @@ export const emitScooterEvent = (
   }
 
   // WebSocket
-  const wsAction =
-    eventType === "auto_unlock_timeout"
-      ? "scooter_auto_unlock_timeout"
-      : `scooter_${eventType}`;
   broadcastWebSocket({
-    action: wsAction,
+    action: `scooter_${eventType}`,
     ...data,
   });
 };

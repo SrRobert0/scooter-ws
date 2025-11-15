@@ -161,7 +161,7 @@ export const unlockScooter = (req: Request, res: Response) => {
 
       // Notifica clientes
       webSocketService.emitScooterEvent("update", scooterId);
-      webSocketService.emitScooterEvent("auto_unlock_timeout", undefined, {
+      webSocketService.emitScooterEvent("lock", undefined, {
         ...sanitizeScooterForJSON(scooterService.findScooterById(scooterId)!),
         message:
           "Patinete liberado automaticamente após 3 minutos - tentativa de desbloqueio expirou",
