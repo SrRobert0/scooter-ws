@@ -1,10 +1,10 @@
-export interface UnlockAttempt {
+interface UnlockAttempt {
   deviceId: string;
   timestamp: Date;
   timerId?: NodeJS.Timeout;
 }
 
-export interface Scooter {
+interface Scooter {
   id: string;
   name: string;
   batteryLevel: number;
@@ -16,7 +16,7 @@ export interface Scooter {
   unlockAttempt?: UnlockAttempt | undefined;
 }
 
-export interface ScooterCreateRequest {
+interface ScooterCreateRequest {
   name: string;
   batteryLevel: number;
   lat: number;
@@ -24,7 +24,7 @@ export interface ScooterCreateRequest {
   displacement: number;
 }
 
-export interface ScooterUpdateRequest {
+interface ScooterUpdateRequest {
   name?: string;
   batteryLevel?: number;
   lat?: number;
@@ -33,7 +33,7 @@ export interface ScooterUpdateRequest {
   onUse?: boolean;
 }
 
-export interface ScooterResponse extends Omit<Scooter, 'unlockAttempt'> {
+interface ScooterResponse extends Omit<Scooter, "unlockAttempt"> {
   unlockAttempt?: {
     deviceId: string;
     timestamp: Date;
@@ -41,7 +41,7 @@ export interface ScooterResponse extends Omit<Scooter, 'unlockAttempt'> {
   };
 }
 
-export interface UnlockStatusResponse {
+interface UnlockStatusResponse {
   hasUnlockAttempt: boolean;
   message?: string;
   deviceId?: string;

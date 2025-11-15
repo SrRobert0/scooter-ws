@@ -2,9 +2,6 @@ import { PrismaClient } from "../generated/prisma";
 
 export const prisma = new PrismaClient();
 
-/**
- * Conecta ao banco de dados
- */
 export const connectDatabase = async (): Promise<void> => {
   try {
     await prisma.$connect();
@@ -15,9 +12,6 @@ export const connectDatabase = async (): Promise<void> => {
   }
 };
 
-/**
- * Desconecta do banco de dados
- */
 export const disconnectDatabase = async (): Promise<void> => {
   try {
     await prisma.$disconnect();

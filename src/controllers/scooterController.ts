@@ -1,31 +1,22 @@
 import type { Request, Response } from "express";
 import * as scooterService from "../services/scooterService.js";
 import * as webSocketService from "../services/webSocketService.js";
-import type {
-  ScooterCreateRequest,
-  ScooterUpdateRequest,
-} from "../types/scooter";
 import {
   validateScooterCreation,
   sanitizeScooterForJSON,
-  calculateTimeRemaining,
 } from "../utils/scooter.js";
-import { connectDatabase } from "../lib/prisma.js";
 
-/**
- * GET /status
- */
 export const getStatus = (_req: Request, res: Response) => {
   res.send("Servidor está funcionando!");
 };
 
-/**
- * GET /scooters
- */
 export const getAllScooters = async (_req: Request, res: Response) => {
   try {
     const scooters = await scooterService.getAllScooters();
-    const sanitizedScooters = scooters.map(sanitizeScooterForJSON);
+    const sanitizedScooters = scooters.map((scooter) =>
+      sanitizeScooterForJSON(scooter)
+    );
+
     res.json(sanitizedScooters);
   } catch (error) {
     console.error("Erro ao buscar patinetes:", error);
@@ -33,9 +24,6 @@ export const getAllScooters = async (_req: Request, res: Response) => {
   }
 };
 
-/**
- * GET /scooters/:id
- */
 export const getScooterById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -50,19 +38,7 @@ export const getScooterById = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Patinete não encontrado" });
     }
 
-    // Prepara resposta com informações de desbloqueio
-    const response = {
-      ...sanitizeScooterForJSON(scooter),
-      unlockAttempt: scooter.unlockAttempt
-        ? {
-            deviceId: scooter.unlockAttempt.deviceId,
-            timestamp: scooter.unlockAttempt.timestamp,
-            timeRemaining: calculateTimeRemaining(
-              scooter.unlockAttempt.timestamp
-            ),
-          }
-        : undefined,
-    };
+    const response = sanitizeScooterForJSON(scooter, false);
 
     res.json(response);
   } catch (error) {
@@ -71,9 +47,6 @@ export const getScooterById = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * GET /scooters/:id/unlock-status
- */
 export const getUnlockStatus = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -95,14 +68,10 @@ export const getUnlockStatus = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * POST /scooters/register
- */
 export const createScooter = async (req: Request, res: Response) => {
   try {
     const data: ScooterCreateRequest = req.body;
 
-    // Validação
     const validation = validateScooterCreation(data);
     if (!validation.isValid) {
       return res.status(400).json({
@@ -115,8 +84,11 @@ export const createScooter = async (req: Request, res: Response) => {
 
     console.log("Novo patinete registrado:", newScooter.id);
 
-    // Notifica clientes
-    webSocketService.emitScooterEvent("creation");
+    webSocketService.emitClientEvent(
+      "creation",
+      newScooter.id,
+      sanitizeScooterForJSON(newScooter)
+    );
 
     res.status(201).json(sanitizeScooterForJSON(newScooter));
   } catch (error) {
@@ -125,9 +97,6 @@ export const createScooter = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * PUT /scooters/:id
- */
 export const updateScooter = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -146,8 +115,11 @@ export const updateScooter = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "Patinete não encontrado" });
     }
 
-    // Notifica clientes
-    webSocketService.emitScooterEvent("update", id);
+    webSocketService.emitClientEvent(
+      "update",
+      id,
+      sanitizeScooterForJSON(updatedScooter)
+    );
 
     res.json(sanitizeScooterForJSON(updatedScooter));
   } catch (error) {
@@ -156,9 +128,6 @@ export const updateScooter = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * POST /scooters/:id/unlock/:deviceId
- */
 export const unlockScooter = async (req: Request, res: Response) => {
   try {
     const { id, deviceId } = req.params;
@@ -179,7 +148,6 @@ export const unlockScooter = async (req: Request, res: Response) => {
       return res.status(400).json({ error: "Patinete já está em uso" });
     }
 
-    // Callback para timeout de desbloqueio
     const handleTimeout = async (scooterId: string, deviceId: string) => {
       const success = await scooterService.processAutoUnlock(
         scooterId,
@@ -192,12 +160,16 @@ export const unlockScooter = async (req: Request, res: Response) => {
           scooterId
         );
 
-        // Notifica clientes com evento de lock
         const updatedScooter = await scooterService.findScooterById(scooterId);
         if (updatedScooter) {
           webSocketService.emitScooterEvent(
-            "lock",
-            undefined,
+            "scooter_lock",
+            sanitizeScooterForJSON(updatedScooter)
+          );
+
+          webSocketService.emitClientEvent(
+            "update",
+            updatedScooter.id,
             sanitizeScooterForJSON(updatedScooter)
           );
         }
@@ -231,20 +203,18 @@ export const unlockScooter = async (req: Request, res: Response) => {
       "- Timer de 3 minutos ativado"
     );
 
-    // Busca o patinete atualizado
     const updatedScooter = await scooterService.findScooterById(id);
     if (!updatedScooter) {
       return res.status(404).json({ error: "Patinete não encontrado" });
     }
 
-    // Notifica clientes
     const unlockingData = {
       ...sanitizeScooterForJSON(updatedScooter),
       code: `${id} - ${deviceId}`,
     };
 
-    webSocketService.emitScooterEvent("unlocking", id, unlockingData);
-    webSocketService.emitScooterEvent("update");
+    webSocketService.emitScooterEvent("scooter_unlocking", unlockingData);
+    webSocketService.emitClientEvent("update", id, unlockingData);
 
     res.json({
       message: `Patinete ${scooter.name}: Iniciando processo de desbloqueio`,
@@ -256,9 +226,6 @@ export const unlockScooter = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * POST /scooters/:id/ride
- */
 export const startRide = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -283,10 +250,13 @@ export const startRide = async (req: Request, res: Response) => {
 
     console.log("Iniciando passeio para patinete:", id);
 
-    // Notifica clientes
-    webSocketService.emitScooterEvent(
+    webSocketService.emitClientEvent(
       "ride",
-      id,
+      scooter.id,
+      sanitizeScooterForJSON(scooter)
+    );
+    webSocketService.emitScooterEvent(
+      "scooter_ride",
       sanitizeScooterForJSON(scooter)
     );
 
@@ -299,9 +269,6 @@ export const startRide = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * POST /scooters/:id/lock
- */
 export const lockScooter = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -330,10 +297,13 @@ export const lockScooter = async (req: Request, res: Response) => {
 
     console.log("Bloqueando patinete:", id);
 
-    // Notifica clientes
-    webSocketService.emitScooterEvent(
+    webSocketService.emitClientEvent(
       "lock",
-      undefined,
+      scooter.id,
+      sanitizeScooterForJSON(scooter)
+    );
+    webSocketService.emitScooterEvent(
+      "scooter_lock",
       sanitizeScooterForJSON(scooter)
     );
 
@@ -346,9 +316,6 @@ export const lockScooter = async (req: Request, res: Response) => {
   }
 };
 
-/**
- * DELETE /scooters/:id
- */
 export const deleteScooter = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
@@ -366,7 +333,7 @@ export const deleteScooter = async (req: Request, res: Response) => {
     console.log("Removendo patinete:", id);
 
     // Notifica clientes
-    webSocketService.emitScooterEvent("delete");
+    webSocketService.emitClientEvent("delete", removedScooter.id);
 
     res.json({
       message: `Patinete ${removedScooter.name} removido com sucesso`,

@@ -1,25 +1,23 @@
-import type { Scooter } from "../types/scooter";
-
-/**
- * Remove propriedades não serializáveis (como timerId) de um patinete
- * para preparar o objeto para serialização JSON
- */
-export const sanitizeScooterForJSON = (scooter: Scooter) => {
+export const sanitizeScooterForJSON = (
+  scooter: Scooter,
+  onlyScooter: boolean = true
+) => {
+  // onlyScooter = true -> Retorna apenas os dados do patinete
   return {
     ...scooter,
-    unlockAttempt: scooter.unlockAttempt
-      ? {
-          deviceId: scooter.unlockAttempt.deviceId,
-          timestamp: scooter.unlockAttempt.timestamp,
-          // Remove timerId para evitar referências circulares
-        }
-      : undefined,
+    ...(onlyScooter
+      ? undefined
+      : {
+          unlockAttempt: scooter.unlockAttempt
+            ? {
+                deviceId: scooter.unlockAttempt.deviceId,
+                timestamp: scooter.unlockAttempt.timestamp,
+              }
+            : undefined,
+        }),
   };
 };
 
-/**
- * Calcula o tempo restante para desbloqueio automático
- */
 export const calculateTimeRemaining = (
   timestamp: Date,
   timeoutMs: number = 180000
@@ -27,9 +25,6 @@ export const calculateTimeRemaining = (
   return Math.max(0, timeoutMs - (Date.now() - timestamp.getTime()));
 };
 
-/**
- * Valida dados de entrada para criação de patinete
- */
 export const validateScooterCreation = (
   data: any
 ): { isValid: boolean; errors: string[] } => {

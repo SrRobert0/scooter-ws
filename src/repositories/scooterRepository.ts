@@ -1,13 +1,5 @@
-import type { Scooter } from "../types/scooter";
 import { prisma } from "../lib/prisma";
-import type {
-  ScooterCreateRequest,
-  ScooterUpdateRequest,
-} from "../types/scooter";
 
-/**
- * Mapeia objeto Prisma para tipo Scooter
- */
 const mapPrismaToScooter = (prismaScooter: any): Scooter => {
   const activeUnlockAttempt = prismaScooter.unlockAttempts?.[0];
 
@@ -24,15 +16,11 @@ const mapPrismaToScooter = (prismaScooter: any): Scooter => {
       ? {
           deviceId: activeUnlockAttempt.deviceId,
           timestamp: activeUnlockAttempt.timestamp,
-          // timerId será adicionado pelo Service quando necessário
         }
       : undefined,
   };
 };
 
-/**
- * Busca todos os patinetes
- */
 export const findAllScooters = async (): Promise<Scooter[]> => {
   const scooters = await prisma.scooter.findMany({
     include: {
@@ -48,9 +36,6 @@ export const findAllScooters = async (): Promise<Scooter[]> => {
   return scooters.map(mapPrismaToScooter);
 };
 
-/**
- * Busca patinete por ID
- */
 export const findScooterById = async (id: string): Promise<Scooter | null> => {
   const scooter = await prisma.scooter.findUnique({
     where: { id },
@@ -66,9 +51,6 @@ export const findScooterById = async (id: string): Promise<Scooter | null> => {
   return scooter ? mapPrismaToScooter(scooter) : null;
 };
 
-/**
- * Cria um novo patinete
- */
 export const createScooter = async (
   data: ScooterCreateRequest
 ): Promise<Scooter> => {
@@ -93,9 +75,6 @@ export const createScooter = async (
   return mapPrismaToScooter(scooter);
 };
 
-/**
- * Atualiza um patinete
- */
 export const updateScooter = async (
   id: string,
   data: ScooterUpdateRequest
@@ -104,16 +83,7 @@ export const updateScooter = async (
     const scooter = await prisma.scooter.update({
       where: { id },
       data: {
-        ...(data.name !== undefined && { name: data.name }),
-        ...(data.batteryLevel !== undefined && {
-          batteryLevel: data.batteryLevel,
-        }),
-        ...(data.lat !== undefined && { lat: data.lat }),
-        ...(data.lon !== undefined && { lon: data.lon }),
-        ...(data.displacement !== undefined && {
-          displacement: data.displacement,
-        }),
-        ...(data.onUse !== undefined && { onUse: data.onUse }),
+        ...data,
       },
       include: {
         unlockAttempts: {
@@ -130,9 +100,6 @@ export const updateScooter = async (
   }
 };
 
-/**
- * Remove um patinete
- */
 export const deleteScooter = async (id: string): Promise<Scooter | null> => {
   try {
     const scooter = await prisma.scooter.delete({
