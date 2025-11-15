@@ -333,7 +333,11 @@ export const deleteScooter = async (req: Request, res: Response) => {
     console.log("Removendo patinete:", id);
 
     // Notifica clientes
-    webSocketService.emitClientEvent("delete", removedScooter.id);
+    webSocketService.emitClientEvent(
+      "delete",
+      removedScooter.id,
+      removedScooter
+    );
 
     res.json({
       message: `Patinete ${removedScooter.name} removido com sucesso`,
