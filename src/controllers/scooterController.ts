@@ -86,7 +86,7 @@ export const createScooter = async (req: Request, res: Response) => {
 
     webSocketService.emitClientEvent(
       "creation",
-      newScooter.id,
+      undefined,
       sanitizeScooterForJSON(newScooter)
     );
 
@@ -117,7 +117,7 @@ export const updateScooter = async (req: Request, res: Response) => {
 
     webSocketService.emitClientEvent(
       "update",
-      id,
+      undefined,
       sanitizeScooterForJSON(updatedScooter)
     );
 
@@ -333,11 +333,7 @@ export const deleteScooter = async (req: Request, res: Response) => {
     console.log("Removendo patinete:", id);
 
     // Notifica clientes
-    webSocketService.emitClientEvent(
-      "delete",
-      removedScooter.id,
-      removedScooter
-    );
+    webSocketService.emitClientEvent("delete", undefined, removedScooter);
 
     res.json({
       message: `Patinete ${removedScooter.name} removido com sucesso`,
