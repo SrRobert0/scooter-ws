@@ -3,8 +3,8 @@ import type {
   ScooterCreateRequest,
   ScooterUpdateRequest,
 } from "../types/scooter";
-import { scooterRepository } from "../repositories/scooterRepository";
-import { unlockAttemptRepository } from "../repositories/unlockAttemptRepository";
+import * as scooterRepository from "../repositories/scooterRepository";
+import * as unlockAttemptRepository from "../repositories/unlockAttemptRepository";
 
 // Constantes
 const UNLOCK_TIMEOUT_MS = 3 * 60 * 1000; // 3 minutos
@@ -16,21 +16,23 @@ const activeTimers = new Map<string, NodeJS.Timeout>();
  * Obtém todos os patinetes
  */
 export const getAllScooters = async (): Promise<Scooter[]> => {
-  return scooterRepository.findAll();
+  return scooterRepository.findAllScooters();
 };
 
 /**
  * Busca um patinete pelo ID
  */
 export const findScooterById = async (id: string): Promise<Scooter | null> => {
-  return scooterRepository.findById(id);
+  return scooterRepository.findScooterById(id);
 };
 
 /**
  * Cria um novo patinete
  */
-export const createScooter = async (data: ScooterCreateRequest): Promise<Scooter> => {
-  return scooterRepository.create(data);
+export const createScooter = async (
+  data: ScooterCreateRequest
+): Promise<Scooter> => {
+  return scooterRepository.createScooter(data);
 };
 
 /**
@@ -40,7 +42,7 @@ export const updateScooter = async (
   id: string,
   data: ScooterUpdateRequest
 ): Promise<Scooter | null> => {
-  return scooterRepository.update(id, data);
+  return scooterRepository.updateScooter(id, data);
 };
 
 /**
@@ -52,8 +54,8 @@ export const startUnlockAttempt = async (
   onTimeout: (scooterId: string, deviceId: string) => void
 ): Promise<boolean> => {
   try {
-    const scooter = await scooterRepository.findById(id);
-    
+    const scooter = await scooterRepository.findScooterById(id);
+
     if (!scooter || scooter.onUse) {
       return false;
     }
@@ -66,10 +68,10 @@ export const startUnlockAttempt = async (
     }
 
     // Cria tentativa no banco de dados
-    await unlockAttemptRepository.create(id, deviceId);
-    
+    await unlockAttemptRepository.createUnlockAttempt(id, deviceId);
+
     // Atualiza patinete para "em uso"
-    await scooterRepository.update(id, { onUse: true });
+    await scooterRepository.updateScooter(id, { onUse: true });
 
     // Configura novo timer
     const timerId = setTimeout(async () => {
@@ -81,7 +83,7 @@ export const startUnlockAttempt = async (
 
     return true;
   } catch (error) {
-    console.error('Erro ao iniciar tentativa de desbloqueio:', error);
+    console.error("Erro ao iniciar tentativa de desbloqueio:", error);
     return false;
   }
 };
@@ -99,11 +101,11 @@ export const confirmUnlock = async (id: string): Promise<boolean> => {
     }
 
     // Desativa tentativa no banco
-    await unlockAttemptRepository.deactivateByScooterId(id);
+    await unlockAttemptRepository.deactivateUnlockAttemptsByScooterId(id);
 
     return true;
   } catch (error) {
-    console.error('Erro ao confirmar desbloqueio:', error);
+    console.error("Erro ao confirmar desbloqueio:", error);
     return false;
   }
 };
@@ -117,17 +119,18 @@ export const processAutoUnlock = async (
 ): Promise<boolean> => {
   try {
     // Verifica se existe tentativa ativa para este patinete e device
-    const unlockAttempt = await unlockAttemptRepository.findActiveByScooterAndDevice(
-      scooterId,
-      deviceId
-    );
+    const unlockAttempt =
+      await unlockAttemptRepository.findActiveUnlockAttemptByScooterAndDevice(
+        scooterId,
+        deviceId
+      );
 
     if (!unlockAttempt) {
       return false;
     }
 
-    const scooter = await scooterRepository.findById(scooterId);
-    
+    const scooter = await scooterRepository.findScooterById(scooterId);
+
     if (!scooter) {
       return false;
     }
@@ -135,17 +138,19 @@ export const processAutoUnlock = async (
     // Se ainda está em uso (aguardando desbloqueio), libera
     if (scooter.onUse) {
       // Desativa tentativa no banco
-      await unlockAttemptRepository.deactivateByScooterId(scooterId);
-      
+      await unlockAttemptRepository.deactivateUnlockAttemptsByScooterId(
+        scooterId
+      );
+
       // Atualiza patinete para "não em uso"
-      await scooterRepository.update(scooterId, { onUse: false });
-      
+      await scooterRepository.updateScooter(scooterId, { onUse: false });
+
       return true;
     }
 
     return false;
   } catch (error) {
-    console.error('Erro ao processar desbloqueio automático:', error);
+    console.error("Erro ao processar desbloqueio automático:", error);
     return false;
   }
 };
@@ -155,7 +160,7 @@ export const processAutoUnlock = async (
  */
 export const lockScooter = async (id: string): Promise<boolean> => {
   try {
-    const scooter = await scooterRepository.findById(id);
+    const scooter = await scooterRepository.findScooterById(id);
 
     if (!scooter || !scooter.onUse) {
       return false;
@@ -169,14 +174,14 @@ export const lockScooter = async (id: string): Promise<boolean> => {
     }
 
     // Desativa tentativa no banco
-    await unlockAttemptRepository.deactivateByScooterId(id);
-    
+    await unlockAttemptRepository.deactivateUnlockAttemptsByScooterId(id);
+
     // Atualiza patinete
-    await scooterRepository.update(id, { onUse: false });
+    await scooterRepository.updateScooter(id, { onUse: false });
 
     return true;
   } catch (error) {
-    console.error('Erro ao bloquear patinete:', error);
+    console.error("Erro ao bloquear patinete:", error);
     return false;
   }
 };
@@ -194,9 +199,9 @@ export const deleteScooter = async (id: string): Promise<Scooter | null> => {
     }
 
     // Remove patinete (cascade remove tentativas)
-    return scooterRepository.delete(id);
+    return scooterRepository.deleteScooter(id);
   } catch (error) {
-    console.error('Erro ao deletar patinete:', error);
+    console.error("Erro ao deletar patinete:", error);
     return null;
   }
 };
@@ -206,7 +211,7 @@ export const deleteScooter = async (id: string): Promise<Scooter | null> => {
  */
 export const getUnlockStatus = async (id: string) => {
   try {
-    const scooter = await scooterRepository.findById(id);
+    const scooter = await scooterRepository.findScooterById(id);
 
     if (!scooter) {
       return null;
@@ -234,7 +239,7 @@ export const getUnlockStatus = async (id: string) => {
       ),
     };
   } catch (error) {
-    console.error('Erro ao obter status de desbloqueio:', error);
+    console.error("Erro ao obter status de desbloqueio:", error);
     return null;
   }
 };

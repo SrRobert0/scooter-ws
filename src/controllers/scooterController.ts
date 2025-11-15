@@ -28,8 +28,8 @@ export const getAllScooters = async (_req: Request, res: Response) => {
     const sanitizedScooters = scooters.map(sanitizeScooterForJSON);
     res.json(sanitizedScooters);
   } catch (error) {
-    console.error('Erro ao buscar patinetes:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("Erro ao buscar patinetes:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 };
 
@@ -66,8 +66,8 @@ export const getScooterById = async (req: Request, res: Response) => {
 
     res.json(response);
   } catch (error) {
-    console.error('Erro ao buscar patinete:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("Erro ao buscar patinete:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 };
 
@@ -90,8 +90,8 @@ export const getUnlockStatus = async (req: Request, res: Response) => {
 
     res.json(status);
   } catch (error) {
-    console.error('Erro ao obter status de desbloqueio:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("Erro ao obter status de desbloqueio:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 };
 
@@ -120,8 +120,8 @@ export const createScooter = async (req: Request, res: Response) => {
 
     res.status(201).json(sanitizeScooterForJSON(newScooter));
   } catch (error) {
-    console.error('Erro ao criar patinete:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("Erro ao criar patinete:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 };
 
@@ -151,8 +151,8 @@ export const updateScooter = async (req: Request, res: Response) => {
 
     res.json(sanitizeScooterForJSON(updatedScooter));
   } catch (error) {
-    console.error('Erro ao atualizar patinete:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("Erro ao atualizar patinete:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 };
 
@@ -181,15 +181,25 @@ export const unlockScooter = async (req: Request, res: Response) => {
 
     // Callback para timeout de desbloqueio
     const handleTimeout = async (scooterId: string, deviceId: string) => {
-      const success = await scooterService.processAutoUnlock(scooterId, deviceId);
+      const success = await scooterService.processAutoUnlock(
+        scooterId,
+        deviceId
+      );
 
       if (success) {
-        console.log("Desbloqueio automático executado para patinete:", scooterId);
+        console.log(
+          "Desbloqueio automático executado para patinete:",
+          scooterId
+        );
 
         // Notifica clientes com evento de lock
         const updatedScooter = await scooterService.findScooterById(scooterId);
         if (updatedScooter) {
-          webSocketService.emitScooterEvent("lock", undefined, sanitizeScooterForJSON(updatedScooter));
+          webSocketService.emitScooterEvent(
+            "lock",
+            undefined,
+            sanitizeScooterForJSON(updatedScooter)
+          );
         }
 
         console.log(
@@ -241,8 +251,8 @@ export const unlockScooter = async (req: Request, res: Response) => {
       autoUnlockIn: "3 minutos",
     });
   } catch (error) {
-    console.error('Erro ao desbloquear patinete:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("Erro ao desbloquear patinete:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 };
 
@@ -284,8 +294,8 @@ export const startRide = async (req: Request, res: Response) => {
       message: `Patinete ${scooter.name}: Desbloqueado para uso`,
     });
   } catch (error) {
-    console.error('Erro ao iniciar passeio:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("Erro ao iniciar passeio:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 };
 
@@ -331,8 +341,8 @@ export const lockScooter = async (req: Request, res: Response) => {
       message: `Patinete ${scooter.name}: Bloqueado com sucesso`,
     });
   } catch (error) {
-    console.error('Erro ao bloquear patinete:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("Erro ao bloquear patinete:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 };
 
@@ -362,7 +372,7 @@ export const deleteScooter = async (req: Request, res: Response) => {
       message: `Patinete ${removedScooter.name} removido com sucesso`,
     });
   } catch (error) {
-    console.error('Erro ao deletar patinete:', error);
-    res.status(500).json({ error: 'Erro interno do servidor' });
+    console.error("Erro ao deletar patinete:", error);
+    res.status(500).json({ error: "Erro interno do servidor" });
   }
 };
