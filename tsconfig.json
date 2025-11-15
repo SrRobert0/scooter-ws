@@ -7,8 +7,13 @@
 
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
-    "module": "es6",
-    "target": "es2023",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2022",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "moduleDetection": "force",
+    "ignoreDeprecations": "6.0",
     // For nodejs:
     "lib": ["ES2023", "DOM"],
     "types": ["node"],
@@ -23,7 +28,6 @@
     // Stricter Typechecking Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
-    "allowSyntheticDefaultImports": true,
 
     // Style Options
     // "noImplicitReturns": true,
@@ -36,10 +40,9 @@
     // Recommended Options
     "strict": true,
     "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
+    // "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
     "skipLibCheck": true
   }
 }
