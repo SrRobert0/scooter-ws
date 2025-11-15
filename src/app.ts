@@ -218,8 +218,7 @@ express.put("/scooters/:id", (req, res) => {
   scooters[scooterIndex].lon = lon || scooters[scooterIndex].lon;
   scooters[scooterIndex].displacement =
     displacement || scooters[scooterIndex].displacement;
-  scooters[scooterIndex].onUse =
-    onUse === undefined || scooters[scooterIndex].onUse;
+  scooters[scooterIndex].onUse = onUse || scooters[scooterIndex].onUse;
   scooters[scooterIndex].lastUpdate = new Date();
 
   io.emit(`scooter_update`);
