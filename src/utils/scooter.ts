@@ -12,6 +12,9 @@ export const sanitizeScooterForJSON = (
             ? {
                 deviceId: scooter.unlockAttempt.deviceId,
                 timestamp: scooter.unlockAttempt.timestamp,
+                timeRemaining: calculateTimeRemaining(
+                  scooter.unlockAttempt.timestamp
+                ),
               }
             : undefined,
         }),
