@@ -211,20 +211,22 @@ express.put("/scooters/:id", (req, res) => {
     return res.status(404).json({ error: "Patinete não encontrado" });
   }
 
-  scooters[scooterIndex].name = name || scooters[scooterIndex].name;
-  scooters[scooterIndex].batteryLevel =
-    batteryLevel || scooters[scooterIndex].batteryLevel;
-  scooters[scooterIndex].lat = lat || scooters[scooterIndex].lat;
-  scooters[scooterIndex].lon = lon || scooters[scooterIndex].lon;
-  scooters[scooterIndex].displacement =
-    displacement || scooters[scooterIndex].displacement;
-  scooters[scooterIndex].onUse = onUse || scooters[scooterIndex].onUse;
-  scooters[scooterIndex].lastUpdate = new Date();
+  const scooter = scooters[scooterIndex];
+
+  scooter.name = name || scooter.name;
+  scooter.batteryLevel = batteryLevel || scooter.batteryLevel;
+  scooter.lat = lat || scooter.lat;
+  scooter.lon = lon || scooter.lon;
+  scooter.displacement = displacement || scooter.displacement;
+  scooter.onUse = onUse || scooter.onUse;
+  scooter.lastUpdate = new Date();
+
+  scooters[scooterIndex] = scooter;
 
   io.emit(`scooter_update`);
   io.emit(`scooter_update_${id}`);
 
-  res.json(prepareScooterForJSON(scooters[scooterIndex]));
+  res.json(prepareScooterForJSON(scooter));
 });
 
 express.post("/scooters/:id/unlock/:deviceId", (req, res) => {
