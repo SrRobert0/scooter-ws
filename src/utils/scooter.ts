@@ -25,7 +25,7 @@ export const calculateTimeRemaining = (
   timestamp: Date,
   timeoutMs: number = 180000
 ): number => {
-  return Math.max(0, timeoutMs - (Date.now() - timestamp.getTime()));
+  return Math.max(0, timeoutMs - (Date.now() - timestamp.getTime())) / 1000;
 };
 
 export const validateScooterCreation = (
