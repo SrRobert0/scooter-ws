@@ -1,0 +1,49 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo para patinetes
+model Scooter {
+  id           String   @id @default(cuid())
+  name         String
+  batteryLevel Int      @map("battery_level")
+  lat          Float
+  lon          Float
+  displacement Float
+  onUse        Boolean  @default(false) @map("on_use")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relacionamento com tentativas de desbloqueio
+  unlockAttempts UnlockAttempt[]
+
+  @@map("scooters")
+}
+
+// Modelo para tentativas de desbloqueio
+model UnlockAttempt {
+  id        String   @id @default(cuid())
+  scooterId String   @map("scooter_id")
+  deviceId  String   @map("device_id")
+  timestamp DateTime @default(now())
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relacionamento com patinete
+  scooter Scooter @relation(fields: [scooterId], references: [id], onDelete: Cascade)
+
+  @@map("unlock_attempts")
+}
