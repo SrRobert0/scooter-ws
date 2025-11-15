@@ -17,11 +17,11 @@ const wss = new WebSocketServer({ noServer: true });
 // Configuração das rotas
 setupScooterRoutes(expressApp);
 
-// Configuração do WebSocket
+// Configuração dos WebSocket's
 setupWebSocket(wss);
 setupSocketIO(io);
 
-// Handler para upgrade de conexão WebSocket
+// Redirecionamento de upgrade de conexão WebSocket
 httpServer.on("upgrade", (request, socket, head) => {
   handleWebSocketUpgrade(wss, request, socket, head);
 });

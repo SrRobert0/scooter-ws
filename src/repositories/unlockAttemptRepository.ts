@@ -1,16 +1,12 @@
 import { prisma } from "../lib/prisma";
 
-/**
- * Cria uma nova tentativa de desbloqueio
- */
 export const createUnlockAttempt = async (
   scooterId: string,
   deviceId: string
 ) => {
-  // Primeiro, desativa tentativas anteriores para este patinete
+  // Limpa as tentativas anteriores antes de criar uma nova
   await deactivateUnlockAttemptsByScooterId(scooterId);
 
-  // Cria nova tentativa
   return prisma.unlockAttempt.create({
     data: {
       scooterId,
@@ -20,9 +16,6 @@ export const createUnlockAttempt = async (
   });
 };
 
-/**
- * Busca tentativa ativa por ID do patinete
- */
 export const findActiveUnlockAttemptByScooterId = async (scooterId: string) => {
   return prisma.unlockAttempt.findFirst({
     where: {
@@ -33,9 +26,6 @@ export const findActiveUnlockAttemptByScooterId = async (scooterId: string) => {
   });
 };
 
-/**
- * Busca tentativa ativa por ID do patinete e device
- */
 export const findActiveUnlockAttemptByScooterAndDevice = async (
   scooterId: string,
   deviceId: string
@@ -50,9 +40,6 @@ export const findActiveUnlockAttemptByScooterAndDevice = async (
   });
 };
 
-/**
- * Desativa tentativa de desbloqueio
- */
 export const deactivateUnlockAttemptsByScooterId = async (
   scooterId: string
 ) => {
@@ -67,9 +54,6 @@ export const deactivateUnlockAttemptsByScooterId = async (
   });
 };
 
-/**
- * Desativa tentativa específica
- */
 export const deactivateUnlockAttemptById = async (id: string) => {
   return prisma.unlockAttempt.update({
     where: { id },
@@ -79,9 +63,6 @@ export const deactivateUnlockAttemptById = async (id: string) => {
   });
 };
 
-/**
- * Remove todas as tentativas de um patinete
- */
 export const deleteUnlockAttemptsByScooterId = async (scooterId: string) => {
   return prisma.unlockAttempt.deleteMany({
     where: { scooterId },

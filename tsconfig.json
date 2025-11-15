@@ -44,5 +44,6 @@
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
     "skipLibCheck": true
-  }
+  },
+  "include": ["src"]
 }

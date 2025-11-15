@@ -3,20 +3,13 @@ import type { IncomingMessage } from "http";
 import type { Server } from "socket.io";
 import * as webSocketService from "../services/webSocketService";
 
-/**
- * Configura o WebSocket Server
- */
 export const setupWebSocket = (wss: WebSocketServer): void => {
   wss.on("connection", (ws: WebSocket) => {
     webSocketService.addWebSocketClient(ws);
   });
 };
 
-/**
- * Configura o Socket.IO
- */
 export const setupSocketIO = (io: Server): void => {
-  // Inicializa o serviço WebSocket com instância do Socket.IO
   webSocketService.initializeWebSocketService(io);
 
   io.on("connection", (socket) => {
@@ -28,9 +21,6 @@ export const setupSocketIO = (io: Server): void => {
   });
 };
 
-/**
- * Handler para upgrade de conexão WebSocket
- */
 export const handleWebSocketUpgrade = (
   wss: WebSocketServer,
   request: IncomingMessage,
