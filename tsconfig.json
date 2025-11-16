@@ -8,12 +8,11 @@
     // Environment Settings
     // See also https://aka.ms/tsconfig/module
     "module": "commonjs",
-    "moduleResolution": "node",
+    "moduleResolution": "node10",
     "target": "es2022",
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "moduleDetection": "force",
-    "ignoreDeprecations": "6.0",
     // For nodejs:
     "lib": ["ES2023", "DOM"],
     "types": ["node"],
