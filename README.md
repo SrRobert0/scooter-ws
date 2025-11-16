@@ -1,4 +1,4 @@
-# 🛴 Sistemade de Gerenciamento de Patinetes
+# 🛴 Sistema de Gerenciamento de Patinetes
 
 Sistema de gerenciamento de patinetes elétricos com funcionalidades de desbloqueio temporizado, rastreamento em tempo real e comunicação via WebSocket.
 
